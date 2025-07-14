@@ -1,4 +1,3 @@
-// index.js
 require('dotenv').config();
 const { TwitterApi } = require('twitter-api-v2');
 
@@ -11,30 +10,33 @@ const client = new TwitterApi({
 
 const bot = client.readWrite;
 
-let lastCheckedId = null;
+let lastMentionId = null;
 
 async function checkMentions() {
   try {
-    const mentions = await bot.v2.mentionsTimeline({
-      since_id: lastCheckedId,
-      max_results: 5,
-    });
+    const mentions = await bot.v1.mentionTimeline({ count: 5, since_id: lastMentionId });
 
-    for (const mention of mentions.data ?? []) {
+    if (!mentions.length) {
+      console.log('No new mentions');
+      return;
+    }
+
+    for (const mention of mentions) {
       const text = mention.text.toLowerCase();
-      const id = mention.id;
-      const username = mention.author_id;
+      const tweetId = mention.id_str;
+      const screenName = mention.user.screen_name;
 
-      console.log('🔔 Mention received:', text);
+      console.log(`📩 Mention from @${screenName}: ${text}`);
 
       if (text.includes('#GOアプリフリーAR')) {
-        await bot.v2.reply(
-          `@${mention.username} こちらをご覧ください 👉 https://www.vons.co.jp/ar/`,
-          mention.id
+        await bot.v1.reply(
+          `@${screenName} こちらをご覧ください 👉 https://www.vons.co.jp/ar/`,
+          tweetId
         );
+        console.log(`✅ Replied to @${screenName}`);
       }
 
-      lastCheckedId = id;
+      lastMentionId = tweetId;
     }
   } catch (err) {
     console.error('❌ Error checking mentions:', err);
